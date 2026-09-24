@@ -1,0 +1,8 @@
+node_modules/
+.artifacts/
+apps/camera/.dart_tool/
+apps/camera/build/
+apps/camera/android/local.properties
+apps/camera/android/.gradle/
+apps/camera/android/.kotlin/
+*.log

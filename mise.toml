@@ -1,0 +1,35 @@
+[tools]
+flutter = "3.47.2"
+android-sdk = "23.0"
+java = "temurin-21.0.12+101.0.LTS"
+
+[tasks."camera:deps"]
+description = "Flutterアプリの依存関係を取得"
+dir = "{{config_root}}/apps/camera"
+run = "flutter pub get"
+
+[tasks."camera:check"]
+description = "Flutterアプリの静的検査とテスト"
+dir = "{{config_root}}/apps/camera"
+run = ["flutter analyze", "flutter test"]
+
+[tasks.web]
+description = "Pi PhotoSyncのWeb版を起動"
+dir = "{{config_root}}/apps/camera"
+run = "flutter run -d web-server --web-hostname 127.0.0.1 --web-port 8080"
+raw = true
+
+[tasks."web:build"]
+description = "Pi PhotoSyncのWeb版をビルド"
+dir = "{{config_root}}/apps/camera"
+run = "flutter build web --release --no-web-resources-cdn"
+
+[tasks."android:setup"]
+description = "Androidのビルドに必要なSDKパッケージを導入"
+run = 'android --sdk "$ANDROID_HOME" sdk install platform-tools platforms/android-36 build-tools/36.0.0 ndk/28.2.13676358'
+raw = true
+
+[tasks."android:build"]
+description = "Android実機にインストールする開発用APKをビルド"
+dir = "{{config_root}}/apps/camera"
+run = "flutter build apk --debug"

@@ -1,0 +1,26 @@
+name: pi_photosync
+description: Androidで撮影した写真をPiに添付するPi PhotoSync
+publish_to: none
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.13.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  camera: ^0.12.1
+  nsd: ^5.0.1
+  http: ^1.6.0
+  image: ^4.9.2
+  file_selector: ^1.1.0
+  mime: ^2.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true

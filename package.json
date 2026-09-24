@@ -1,0 +1,30 @@
+{
+  "name": "pi-photo-sync",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Androidで撮影した写真をPiに添付するPi PhotoSync",
+  "type": "module",
+  "keywords": ["pi-package"],
+  "pi": { "extensions": ["./extensions/photosync.ts"] },
+  "scripts": {
+    "check": "tsc --noEmit",
+    "test": "tsx --test test/*.test.ts",
+    "test:discovery": "tsx test/discovery-smoke.ts",
+    "test:e2e": "tsx test/e2e.ts"
+  },
+  "dependencies": { "bonjour-service": "1.4.4" },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-ai": "*",
+    "@earendil-works/pi-tui": "*"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-coding-agent": "0.85.1",
+    "@earendil-works/pi-ai": "0.85.1",
+    "@earendil-works/pi-tui": "0.85.1",
+    "@types/node": "^24.0.0",
+    "playwright-core": "^1.58.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.0"
+  }
+}
