@@ -90,7 +90,7 @@ Claude Codeの場合、`pid` と `terminal` はMCPサーバーではなくClaude
 ```
 
 そのプロセスの受信先IDに一致しないURLはHTTP 404になります。
-画像は受信先のメモリに入ります。Piでは次の対話入力の `images` に追加され、Claude CodeではMCPツール `get_photos` の結果として返します。
+画像は受信先のメモリに入ります。Piでは次の対話入力の `images` に追加され、Claude CodeではMCPツール `get_photos` の結果として返します。Claude Codeでは、受信時に画像をファイルにも保存します。`get_photos` は応答サイズの上限まで受信順に返し、残りは次の呼び出しで返します。
 
 ### OPTIONS
 

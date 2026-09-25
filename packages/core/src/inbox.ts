@@ -22,9 +22,18 @@ export class PhotoInbox {
     });
   }
 
-  take(): ImageContent[] {
-    const images = this.images;
-    this.images = [];
-    return images;
+  /**
+   * 受信順に画像を取り出す。maxBytesを指定すると、base64の合計がその値を
+   * 超えない枚数だけ返し、残りは受信箱に残す。1枚目が上限を超える場合もその1枚は返す。
+   */
+  take(maxBytes = Infinity): ImageContent[] {
+    let count = 0;
+    let total = 0;
+    for (const image of this.images) {
+      total += image.data.length;
+      if (count > 0 && total > maxBytes) break;
+      count++;
+    }
+    return this.images.splice(0, count);
   }
 }
