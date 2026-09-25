@@ -157,8 +157,12 @@ Androidの撮影はファイル保存を避けるため画像ストリームを�
 - `mise run camera:check`: 静的検査は指摘なし、5件のテストを通過（一覧にPiとClaude Codeの種類が表示されることを追加）。
 - `mise run web:build`: 通過。
 
+- `claude mcp add --scope user` で登録し、`claude mcp list` で接続済みになることを確認。
+- `PHOTOSYNC_CHROME=/usr/bin/chromium npm run test:e2e`（Chromium 152）: 通過。狭いHerdrペインで通知が折り返される点と、Flutter Webの入力欄へのフォーカスに合わせてテストを修正。記録は `.artifacts/e2e-1790307647709/`。
+- `mise run android:build`: 成功。`aapt dump badging` で表示名 `Agent PhotoSync`、アプリID `dev.photosync.agent_photosync`、最低API 24、対象API 36、`apksigner verify` で署名を確認。記録は `.artifacts/android-build.log`。
+
 未確認の項目:
 
-- 実際のClaude Codeに登録した状態での、写真の受信と `get_photos` による画像の読み込み。
-- `npm run test:e2e`（文言を更新済み。Chrome・tmux・Herdrを使うため未実行）。
-- 改名後のAPKのビルドとAndroid実機。applicationIdが変わるため、旧 **Pi PhotoSync** とは別のアプリとしてインストールされます。
+- 実際のClaude Codeのセッションでの、写真の受信と `get_photos` による画像の読み込み。
+- 改名後のAPKのAndroid実機でのインストールと撮影。applicationIdが変わるため、旧 **Pi PhotoSync** とは別のアプリとしてインストールされます。
+- このPCはufwが有効で受信を既定で拒否しており、mDNS（UDP 5353）と受信ポートの許可が必要。
