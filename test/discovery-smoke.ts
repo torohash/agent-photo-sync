@@ -6,7 +6,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { setTimeout } from "node:timers/promises";
-import type { PeerEndpoint } from "../packages/pi-extension/src/protocol.ts";
+import type { PeerEndpoint } from "../packages/core/src/protocol.ts";
 
 const directory = await mkdtemp(join(tmpdir(), "photosync-mdns-"));
 const ids = [randomUUID(), randomUUID()];

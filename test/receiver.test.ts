@@ -3,9 +3,9 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { PhotoInbox } from "../packages/pi-extension/src/inbox.ts";
-import { PhotoReceiver } from "../packages/pi-extension/src/receiver.ts";
-import { ReceiverSelection } from "../packages/pi-extension/src/selection.ts";
+import { PhotoInbox } from "../packages/core/src/inbox.ts";
+import { PhotoReceiver } from "../packages/core/src/receiver.ts";
+import { ReceiverSelection } from "../packages/core/src/selection.ts";
 
 void test("同じフォルダのPiへ個別に送信でき、Pi側の受信先指定も切り替えられる", async (t) => {
   const directory = await mkdtemp(join(tmpdir(), "photosync-test-"));
@@ -21,6 +21,7 @@ void test("同じフォルダのPiへ個別に送信でき、Pi側の受信先�
         inbox,
         selection,
         identity: async () => ({
+          agent: "pi",
           hostId: "test-host",
           host: "test-pc",
           cwd: "/work/same-project",

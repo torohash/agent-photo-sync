@@ -1,20 +1,22 @@
 import { Bonjour, type Browser, type Service } from "bonjour-service";
 import { SERVICE_TYPE, type PeerChange, type PeerEndpoint } from "./protocol.ts";
 
-/** Piごとの受信口をmDNSで公開し、同じLANの受信口を収集する。 */
+/** エージェントごとの受信口をmDNSで公開し、同じLANの受信口を収集する。 */
 export class PhotoDiscovery {
   private readonly bonjour: Bonjour;
   private browser?: Browser;
   private service?: Service;
   private readonly endpoints = new Map<string, PeerEndpoint>();
+  private readonly onChange: (change: PeerChange) => void;
 
-  constructor(onError: (error: Error) => void, private readonly onChange: (change: PeerChange) => void) {
+  constructor(onError: (error: Error) => void, onChange: (change: PeerChange) => void) {
+    this.onChange = onChange;
     this.bonjour = new Bonjour(undefined, onError);
   }
 
   start(id: string, port: number): void {
     this.service = this.bonjour.publish({
-      name: `Pi PhotoSync ${id}`,
+      name: `Agent PhotoSync ${id}`,
       type: SERVICE_TYPE,
       protocol: "tcp",
       port,

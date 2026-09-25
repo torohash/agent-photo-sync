@@ -1,17 +1,15 @@
 import { randomUUID } from "node:crypto";
-import { networkInterfaces } from "node:os";
-import { join } from "node:path";
-import {
-  getAgentDir,
-  type ExtensionAPI,
-  type ExtensionContext,
+import type {
+  ExtensionAPI,
+  ExtensionContext,
 } from "@earendil-works/pi-coding-agent";
 import { Text } from "@earendil-works/pi-tui";
-import { PhotoDiscovery } from "../packages/pi-extension/src/discovery.ts";
-import { readIdentity } from "../packages/pi-extension/src/identity.ts";
-import { PhotoInbox } from "../packages/pi-extension/src/inbox.ts";
-import { PhotoReceiver } from "../packages/pi-extension/src/receiver.ts";
-import { ReceiverSelection } from "../packages/pi-extension/src/selection.ts";
+import { PhotoDiscovery } from "../packages/core/src/discovery.ts";
+import { lanUrls, stateDirectory } from "../packages/core/src/host.ts";
+import { PhotoInbox } from "../packages/core/src/inbox.ts";
+import { PhotoReceiver } from "../packages/core/src/receiver.ts";
+import { ReceiverSelection } from "../packages/core/src/selection.ts";
+import { readIdentity } from "../packages/pi/src/identity.ts";
 
 export default function photosync(pi: ExtensionAPI): void {
   pi.registerFlag("photosync-web-origin", {
@@ -23,12 +21,12 @@ export default function photosync(pi: ExtensionAPI): void {
   let discovery: PhotoDiscovery | undefined;
   let inbox = new PhotoInbox();
   let receiverId = "";
-  const selection = new ReceiverSelection(join(getAgentDir(), "photosync"));
+  const selection = new ReceiverSelection(stateDirectory());
 
   function displayInbox(ctx: ExtensionContext): void {
     ctx.ui.setStatus(
       "photosync",
-      `Pi PhotoSync [${receiverId.slice(0, 8)}] · 未送信 ${inbox.pending.length}枚`,
+      `Agent PhotoSync [${receiverId.slice(0, 8)}] · 未送信 ${inbox.pending.length}枚`,
     );
     if (inbox.pending.length === 0) {
       ctx.ui.setWidget("photosync", undefined);
@@ -38,7 +36,7 @@ export default function photosync(pi: ExtensionAPI): void {
       new Text(
         theme.fg(
           "accent",
-          `Pi PhotoSync · 添付画像 ${inbox.pending.length}枚（未送信） · 文章を入力してEnterで送信`,
+          `Agent PhotoSync · 添付画像 ${inbox.pending.length}枚（未送信） · 文章を入力してEnterで送信`,
         ),
         0,
         0,
@@ -83,7 +81,7 @@ export default function photosync(pi: ExtensionAPI): void {
 
   pi.registerCommand("photosync", {
     description:
-      "Pi PhotoSync — スマホカメラとの接続状態・受信先指定・添付の解除",
+      "Agent PhotoSync — スマホカメラとの接続状態・受信先指定・添付の解除",
     getArgumentCompletions: (prefix) =>
       ["status", "receive", "clear", "web-origin"]
         .filter((value) => value.startsWith(prefix))
@@ -92,7 +90,7 @@ export default function photosync(pi: ExtensionAPI): void {
       if (args === "receive") {
         await selection.select(receiverId);
         ctx.ui.notify(
-          `Pi PhotoSync [${receiverId.slice(0, 8)}] をこのPCの受信先に指定しました。`,
+          `Agent PhotoSync [${receiverId.slice(0, 8)}] をこのPCの受信先に指定しました。`,
           "info",
         );
       } else if (args === "clear") {
@@ -104,13 +102,9 @@ export default function photosync(pi: ExtensionAPI): void {
         ctx.ui.notify(`Web接続を許可: ${receiver!.webOrigin}。アプリの「接続」を押してください。`, "info");
       } else if (args === "status") {
         const status = await receiver!.status();
-        const addresses = Object.values(networkInterfaces())
-          .flat()
-          .filter((address) => address?.family === "IPv4" && !address.internal)
-          .map((address) => `http://${address!.address}:${receiver!.port}`);
         ctx.ui.notify(
           [
-            `Pi PhotoSync [${status.shortId}]`,
+            `Agent PhotoSync [${status.shortId}]`,
             `受信先ID: ${status.id}`,
             `PC: ${status.host}`,
             `作業ディレクトリ: ${status.cwd}`,
@@ -121,10 +115,10 @@ export default function photosync(pi: ExtensionAPI): void {
                   `Herdr: ワークスペース${status.herdr.workspaceNumber} / ${status.herdr.paneId}`,
                 ]
               : []),
-            `Pi側で指定: ${status.preferred ? "選択中" : "未選択"} / 未送信の添付画像: ${status.pending}枚`,
+            `PC側で指定: ${status.preferred ? "選択中" : "未選択"} / 未送信の添付画像: ${status.pending}枚`,
             `Web接続の許可: ${receiver!.webOrigin ?? "未設定（/photosync web-origin <URL> で設定）"}`,
             `このPCのWeb確認用: http://127.0.0.1:${receiver!.port}`,
-            ...addresses.map((address) => `LAN接続先: ${address}`),
+            ...lanUrls(receiver!.port).map((address) => `LAN接続先: ${address}`),
           ].join("\n"),
           "info",
         );

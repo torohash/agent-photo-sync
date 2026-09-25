@@ -4,10 +4,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { setTimeout } from "node:timers/promises";
 import test from "node:test";
-import { PhotoInbox } from "../packages/pi-extension/src/inbox.ts";
-import { PhotoReceiver } from "../packages/pi-extension/src/receiver.ts";
-import { ReceiverSelection } from "../packages/pi-extension/src/selection.ts";
-import type { PeerEndpoint, ReceiverStatus } from "../packages/pi-extension/src/protocol.ts";
+import { PhotoInbox } from "../packages/core/src/inbox.ts";
+import { PhotoReceiver } from "../packages/core/src/receiver.ts";
+import { ReceiverSelection } from "../packages/core/src/selection.ts";
+import type { PeerEndpoint, ReceiverStatus } from "../packages/core/src/protocol.ts";
 
 type WireEvent = { type: string; data: { receiver?: ReceiverStatus; peers?: PeerEndpoint[]; id?: string } & Partial<ReceiverStatus> };
 
@@ -41,7 +41,7 @@ void test("SSEで画像・指定先・発見したPiの変化を通知し、Web�
   const inboxes = [new PhotoInbox(), new PhotoInbox()];
   const receivers = inboxes.map((inbox, index) => new PhotoReceiver({
     id: `r${index}`, host: "127.0.0.1", webOrigin: undefined, inbox, selection,
-    identity: async () => ({ hostId: "host", host: "pc", cwd: "/work", project: "work", pid: index,
+    identity: async () => ({ agent: "pi", hostId: "host", host: "pc", cwd: "/work", project: "work", pid: index,
       terminal: "test", sessionId: `s${index}`, sessionName: null, model: null, herdr: null }),
     peers: () => [], onPhoto: () => {}, onError: (error) => errors.push(error),
   }));

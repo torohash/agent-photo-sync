@@ -1,7 +1,12 @@
 import { Buffer } from "node:buffer";
-import type { ImageContent } from "@earendil-works/pi-ai";
+/** PiのImageContentとMCPの画像コンテンツに共通する形。 */
+export interface ImageContent {
+  type: "image";
+  data: string;
+  mimeType: string;
+}
 
-/** 受信画像を次のユーザーメッセージまでメモリに保持する。 */
+/** 受信画像をエージェントへ渡すまでメモリに保持する。 */
 export class PhotoInbox {
   private images: ImageContent[] = [];
 

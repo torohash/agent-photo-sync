@@ -8,7 +8,7 @@ import { join, resolve, extname } from "node:path";
 import { setTimeout } from "node:timers/promises";
 import { promisify, stripVTControlCharacters } from "node:util";
 import { chromium, type Browser } from "playwright-core";
-import type { ReceiverStatus } from "../packages/pi-extension/src/protocol.ts";
+import type { ReceiverStatus } from "../packages/core/src/protocol.ts";
 
 const execute = promisify(execFile);
 const root = resolve(import.meta.dirname, "..");
@@ -33,7 +33,7 @@ async function waitUntil(
 
 function pendingWidgetLayout(output: string): { rows: number; blankRows: number } {
   const lines = stripVTControlCharacters(output).split(/\r?\n/);
-  const start = lines.findLastIndex((line) => line.trimStart().startsWith("Pi PhotoSync · 添付画像 "));
+  const start = lines.findLastIndex((line) => line.trimStart().startsWith("Agent PhotoSync · 添付画像 "));
   assert.notEqual(start, -1, "未送信画像の枚数が表示されること");
   const border = lines.slice(start + 1).findIndex((line) => line.includes("────────"));
   assert.notEqual(border, -1, "表示の下に入力欄があること");
@@ -100,6 +100,7 @@ const piCommand = (name: string, outside: boolean) =>
         ]
       : []),
     `PI_CODING_AGENT_DIR=${quote(join(output, "pi-home"))}`,
+    `XDG_STATE_HOME=${quote(join(output, "state"))}`,
     `PHOTOSYNC_CAPTURE_FILE=${quote(join(output, `${name}-input.jsonl`))}`,
     "PI_OFFLINE=1",
     "pi --no-extensions --no-skills --no-prompt-templates --no-context-files --no-tools --no-themes --no-approve",
@@ -176,11 +177,11 @@ try {
     await herdr("pane", "run", paneId!, text);
   };
   await waitUntil(
-    async () => (await readTmux()).includes("Pi PhotoSync"),
+    async () => (await readTmux()).includes("Agent PhotoSync"),
     "tmux内のPiが起動すること",
   );
   await waitUntil(
-    async () => (await readHerdr()).includes("Pi PhotoSync"),
+    async () => (await readHerdr()).includes("Agent PhotoSync"),
     "Herdr内のPiが起動すること",
   );
   await sendTmux("/photosync status");
@@ -268,7 +269,7 @@ try {
   );
 
   await sendTmux("/photosync receive");
-  await page.getByRole("button", { name: "Pi側で指定", exact: true }).click();
+  await page.getByRole("button", { name: "PC側で指定", exact: true }).click();
   await page
     .getByRole("button", { name: "送信するPCを選択", exact: true })
     .click();
@@ -286,7 +287,7 @@ try {
   await upload();
   await waitUntil(
     async () => (await status(tmuxUrl)).pending === 1,
-    "Pi側で指定した受信先に画像が届くこと",
+    "PC側で指定した受信先に画像が届くこと",
   );
   assert.equal((await status(herdrUrl)).pending, 1);
   await page.screenshot({

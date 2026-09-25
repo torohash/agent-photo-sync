@@ -27,15 +27,17 @@ export interface ReceiverOptions {
   onError: (error: unknown) => void;
 }
 
-/** HTTPで受信した画像をPiの未送信画像として保持する。 */
+/** HTTPで受信した画像をエージェントへ渡す前の画像として保持する。 */
 export class PhotoReceiver {
   private readonly server;
   private readonly events = new EventStreams();
   private selectionWatcher?: FSWatcher;
   webOrigin: string | undefined;
   port = 0;
+  private readonly options: ReceiverOptions;
 
-  constructor(private readonly options: ReceiverOptions) {
+  constructor(options: ReceiverOptions) {
+    this.options = options;
     this.webOrigin = options.webOrigin;
     this.server = createServer((request, response) => {
       void this.handle(request, response).catch((error: unknown) => {

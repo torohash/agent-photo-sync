@@ -1,7 +1,7 @@
-import { PhotoDiscovery } from "../../packages/pi-extension/src/discovery.ts";
-import { PhotoInbox } from "../../packages/pi-extension/src/inbox.ts";
-import { PhotoReceiver } from "../../packages/pi-extension/src/receiver.ts";
-import { ReceiverSelection } from "../../packages/pi-extension/src/selection.ts";
+import { PhotoDiscovery } from "../../packages/core/src/discovery.ts";
+import { PhotoInbox } from "../../packages/core/src/inbox.ts";
+import { PhotoReceiver } from "../../packages/core/src/receiver.ts";
+import { ReceiverSelection } from "../../packages/core/src/selection.ts";
 
 const [id, directory] = process.argv.slice(2);
 const discovery = new PhotoDiscovery((error) => {
@@ -14,6 +14,7 @@ const receiver = new PhotoReceiver({
   inbox: new PhotoInbox(),
   selection: new ReceiverSelection(directory),
   identity: async () => ({
+    agent: "pi",
     hostId: id,
     host: `pc-${id}`,
     cwd: "/project",

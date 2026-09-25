@@ -1,8 +1,8 @@
 {
-  "name": "pi-photo-sync",
+  "name": "agent-photo-sync",
   "version": "0.1.0",
   "private": true,
-  "description": "Androidで撮影した写真をPiに添付するPi PhotoSync",
+  "description": "Androidで撮影した写真をPiやClaude Codeに渡すAgent PhotoSync",
   "type": "module",
   "keywords": ["pi-package"],
   "pi": { "extensions": ["./extensions/photosync.ts"] },

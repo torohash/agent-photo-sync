@@ -1,4 +1,6 @@
-export const SERVICE_TYPE = "pi-photosync";
+export const SERVICE_TYPE = "agent-photosync";
+
+export type AgentKind = "pi" | "claude-code";
 
 export interface HerdrLocation {
   workspaceId: string;
@@ -9,6 +11,7 @@ export interface HerdrLocation {
 }
 
 export interface SessionIdentity {
+  agent: AgentKind;
   hostId: string;
   host: string;
   cwd: string;

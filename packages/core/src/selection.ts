@@ -3,11 +3,13 @@ import { mkdir, open, rename, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { SelectionSnapshot } from "./protocol.ts";
 
-/** 同じPC・ユーザーのPi拡張が、コマンドで指定された受信先を共有する。 */
+/** 同じPC・ユーザーのエージェントが、コマンドで指定された受信先を共有する。 */
 export class ReceiverSelection {
+  private readonly directory: string;
   private readonly path: string;
 
-  constructor(private readonly directory: string) {
+  constructor(directory: string) {
+    this.directory = directory;
     this.path = join(directory, "selected-receiver");
   }
 
