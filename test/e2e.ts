@@ -187,13 +187,17 @@ try {
   await sendTmux("/photosync status");
   await sendHerdr("/photosync status");
   const localUrl = /このPCのWeb確認用: (http:\/\/127\.0\.0\.1:\d+)/;
+  // 狭いペインでは通知が折り返されるため、行をつないでから探す。
+  const unwrap = (screen: string) =>
+    stripVTControlCharacters(screen).replace(/\s*\n\s*/g, " ");
   await waitUntil(
     async () =>
-      localUrl.test(await readTmux()) && localUrl.test(await readHerdr()),
+      localUrl.test(unwrap(await readTmux())) &&
+      localUrl.test(unwrap(await readHerdr())),
     "両方のPiが接続先を表示すること",
   );
-  const tmuxUrl = (await readTmux()).match(localUrl)![1];
-  const herdrUrl = (await readHerdr()).match(localUrl)![1];
+  const tmuxUrl = unwrap(await readTmux()).match(localUrl)![1];
+  const herdrUrl = unwrap(await readHerdr()).match(localUrl)![1];
   const status = async (url: string): Promise<ReceiverStatus> =>
     (await fetch(`${url}/v1/status`)).json();
   const [outside, inside] = await Promise.all([
@@ -227,7 +231,10 @@ try {
     if (message.type() === "error") console.error(message.text());
   });
   await page.goto(webOrigin);
-  await page.getByRole("textbox", { name: "受信先の接続先URL" }).fill(herdrUrl);
+  const address = page.getByRole("textbox", { name: "受信先の接続先URL" });
+  // Flutter Webは入力欄にフォーカスしてから編集用の要素を作る。
+  await address.click();
+  await address.fill(herdrUrl);
   const deniedRequest = page.waitForEvent("requestfailed", (request) => request.url() === `${herdrUrl}/v1/events`);
   await page.getByRole("button", { name: "接続", exact: true }).click();
   await deniedRequest;
@@ -352,7 +359,7 @@ try {
     ),
   );
   console.log(
-    `Web → 対話中のPi（Herdr内外）への送信・手動選択・Pi側指定・Enter時の画像追加を確認: ${output}`,
+    `Web → 対話中のPi（Herdr内外）への送信・手動選択・PC側指定・Enter時の画像追加を確認: ${output}`,
   );
 } catch (error) {
   if (browser) {
