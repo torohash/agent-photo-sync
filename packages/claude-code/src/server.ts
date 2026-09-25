@@ -4,6 +4,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { z } from "zod";
 import { PhotoDiscovery } from "../../core/src/discovery.ts";
 import {
   lanUrls,
@@ -127,10 +128,22 @@ server.registerTool(
     description:
       "Agent PhotoSyncアプリから受信し、まだ取得していない写真を受信順に返す。" +
       "1回の応答サイズに上限があり、残りがある場合はその枚数を返すので、もう一度呼ぶ。" +
-      "返した写真は受信箱から消えるが、ファイルとして保存したパスも返す。",
+      "返した写真は受信箱から消えるが、ファイルとして保存したパスも返す。" +
+      "pathsOnly=trueでは画像を返さず、未取得の写真をすべて受信箱から取り出して保存先のパスだけを返す。" +
+      "画像を見る必要がなく、別の担当者へファイルとして渡す場合に使う。",
+    // SDKはオブジェクトのスキーマだけをツール一覧に載せるため、項目の形で渡す。
+    // この場合、引数を省略した呼び出しは入力エラーになる（Claude Codeは空のオブジェクトを送る）。
+    inputSchema: {
+      pathsOnly: z
+        .boolean()
+        .optional()
+        .describe("trueなら画像を返さず、保存先のパスだけを返す"),
+    },
   },
-  async () => {
-    const { images, paths } = inbox.takeWithPaths(maxResponseBytes);
+  async ({ pathsOnly }) => {
+    const { images, paths } = inbox.takeWithPaths(
+      pathsOnly ? Infinity : maxResponseBytes,
+    );
     receiver.notifyStatus();
     if (images.length === 0)
       return {
@@ -143,8 +156,12 @@ server.registerTool(
       };
     const remaining = inbox.pending.length;
     const saved = paths.filter(Boolean);
+    const unsaved = paths.length - saved.length;
     const lines = [
       `スマホから受信した写真: ${images.length}枚`,
+      ...(pathsOnly && unsaved > 0
+        ? [`${unsaved}枚はファイルへの保存に失敗したため、パスがありません。`]
+        : []),
       ...(remaining > 0
         ? [
             `未取得の写真が残り${remaining}枚あります。get_photos をもう一度呼んで受け取ってください。`,
@@ -155,7 +172,10 @@ server.registerTool(
         : []),
     ];
     return {
-      content: [{ type: "text", text: lines.join("\n") }, ...images],
+      content: [
+        { type: "text", text: lines.join("\n") },
+        ...(pathsOnly ? [] : images),
+      ],
     };
   },
 );

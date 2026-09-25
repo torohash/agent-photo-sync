@@ -14,7 +14,8 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.30.1",
-    "bonjour-service": "1.4.4"
+    "bonjour-service": "1.4.4",
+    "zod": "4.6.5"
   },
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*",

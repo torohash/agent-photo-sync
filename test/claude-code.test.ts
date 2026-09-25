@@ -43,11 +43,11 @@ void test("Claude Code用MCPサーバーが受信した写真をget_photosで一
   });
   assert.equal((await posted.json()).pending, 1);
 
-  const photos = await client.callTool({ name: "get_photos" });
+  const photos = await client.callTool({ name: "get_photos", arguments: {} });
   assert.deepEqual((photos.content as unknown[]).slice(1), [
     { type: "image", data: image.toString("base64"), mimeType: "image/png" },
   ]);
-  assert.match(text(await client.callTool({ name: "get_photos" })), /未取得の写真はありません/);
+  assert.match(text(await client.callTool({ name: "get_photos", arguments: {} })), /未取得の写真はありません/);
   assert.equal((await (await fetch(`${url}/v1/status`)).json()).pending, 0);
 
   await client.callTool({ name: "photosync_receive" });
@@ -91,16 +91,59 @@ void test("get_photosは応答サイズの上限で分けて返し、受信し�
       body: image,
     });
 
-  const first = await client.callTool({ name: "get_photos" });
+  const first = await client.callTool({ name: "get_photos", arguments: {} });
   assert.equal((first.content as unknown[]).length, 2);
   assert.match(text(first), /残り1枚/);
   const firstPath = text(first).match(/^- (.+)$/m)![1]!;
   assert.match(firstPath, /001\.png$/);
   assert.deepEqual(await readFile(firstPath), image);
 
-  const second = await client.callTool({ name: "get_photos" });
+  const second = await client.callTool({ name: "get_photos", arguments: {} });
   assert.equal((second.content as unknown[]).length, 2);
   assert.doesNotMatch(text(second), /残り/);
   assert.match(text(second).match(/^- (.+)$/m)![1]!, /002\.png$/);
-  assert.match(text(await client.callTool({ name: "get_photos" })), /未取得の写真はありません/);
+  assert.match(text(await client.callTool({ name: "get_photos", arguments: {} })), /未取得の写真はありません/);
+});
+
+void test("get_photosのpathsOnlyは画像を返さず、未取得の写真をすべて取り出してパスを返す", async (t) => {
+  const state = await mkdtemp(join(tmpdir(), "photosync-claude-"));
+  const image = await readFile(new URL("./fixtures/photo.png", import.meta.url));
+  const transport = new StdioClientTransport({
+    command: process.execPath,
+    args: [new URL("../packages/claude-code/src/server.ts", import.meta.url).pathname],
+    env: {
+      ...(process.env as Record<string, string>),
+      XDG_STATE_HOME: state,
+      CLAUDE_PID: String(process.pid),
+      // 上限が1枚分でも、pathsOnlyでは全部取り出す。
+      PHOTOSYNC_MAX_RESPONSE_BYTES: String(image.toString("base64").length),
+    },
+    stderr: "inherit",
+  });
+  const client = new Client({ name: "test", version: "0.0.0" });
+  await client.connect(transport);
+  t.after(async () => {
+    await client.close();
+    await rm(state, { recursive: true });
+  });
+
+  const text = (result: Awaited<ReturnType<Client["callTool"]>>) =>
+    (result.content as { type: string; text?: string }[])[0]!.text!;
+  const statusText = text(await client.callTool({ name: "photosync_status" }));
+  const url = statusText.match(/Web確認用: (\S+)/)![1]!;
+  const { id } = await (await fetch(`${url}/v1/status`)).json();
+  for (let index = 0; index < 3; index++)
+    await fetch(`${url}/v1/photos/${id}`, {
+      method: "POST",
+      headers: { "Content-Type": "image/png" },
+      body: image,
+    });
+
+  const result = await client.callTool({ name: "get_photos", arguments: { pathsOnly: true } });
+  assert.equal((result.content as unknown[]).length, 1);
+  assert.doesNotMatch(text(result), /残り/);
+  const paths = [...text(result).matchAll(/^- (.+)$/gm)].map((match) => match[1]!);
+  assert.equal(paths.length, 3);
+  assert.deepEqual(await readFile(paths[2]!), image);
+  assert.equal((await (await fetch(`${url}/v1/status`)).json()).pending, 0);
 });
