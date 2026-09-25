@@ -15,13 +15,13 @@ dir = "{{config_root}}/apps/camera"
 run = ["flutter analyze", "flutter test"]
 
 [tasks.web]
-description = "Pi PhotoSyncのWeb版を起動"
+description = "Agent PhotoSyncのWeb版を起動"
 dir = "{{config_root}}/apps/camera"
 run = "flutter run -d web-server --web-hostname 127.0.0.1 --web-port 8080"
 raw = true
 
 [tasks."web:build"]
-description = "Pi PhotoSyncのWeb版をビルド"
+description = "Agent PhotoSyncのWeb版をビルド"
 dir = "{{config_root}}/apps/camera"
 run = "flutter build web --release --no-web-resources-cdn"
 

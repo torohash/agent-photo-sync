@@ -20,7 +20,7 @@ PC側の受信処理は、PiではPi拡張、Claude CodeではMCPサーバーと
 ### 画像の流れ
 
 1. アプリで送信先を選びます。
-2. 撮影すると、その画像をPiへ送信します。
+2. 撮影すると、その画像を選んだPiまたはClaude Codeへ送信します。
 3. Piでは画像が添付され、入力欄の上に「未送信」の添付枚数と送信操作の案内が表示されます。文章を入力してEnterを押すと、本文と画像を一緒に送信します。
 4. Claude Codeでは「写真を見て」などと頼むと、ClaudeがMCPツール `get_photos` で未取得の画像をまとめて受け取ります。
 
@@ -28,7 +28,7 @@ PC側の受信処理は、PiではPi拡張、Claude CodeではMCPサーバーと
 
 ## Pi拡張の起動
 
-確認に使用した環境はNode.js 24、Pi 0.85.1です。
+確認に使用した環境はNode.js 26.8.2（mise管理）、Pi 0.85.1です。
 
 ```bash
 npm ci
@@ -120,8 +120,8 @@ Flutterコマンドを直接使う場合は、`apps/camera` 内で `mise exec --
 
 ### Webで送信を確認する
 
-ブラウザはLANのmDNSを直接探索できないため、Web版にはPiの接続先URLを入力する欄があります。
-接続後はPi拡張が発見した他の受信先も一覧に表示します。
+ブラウザはLANのmDNSを直接探索できないため、Web版には受信先の接続先URLを入力する欄があります。
+接続後はその受信先が発見した他の受信先も一覧に表示します。
 
 プロジェクトのルートでWeb版を起動します。
 
@@ -131,8 +131,8 @@ mise run web
 
 `http://127.0.0.1:8080` で開けます。終了は起動したターミナルで `q` を押します。
 
-拡張を読み込んだPiの入力欄で、Webアプリの接続元URLを許可します。
-アプリ画面にも、そのブラウザで必要なコマンドを表示します。複数のPiで確認する場合は、それぞれで設定してください。
+Webアプリの接続元URLを、受信先ごとに許可します。Claude Codeでは、MCPサーバーの登録時に `-e PHOTOSYNC_WEB_ORIGIN=http://127.0.0.1:8080` を付けます（「Claude Codeで使う」を参照）。
+Piでは、拡張を読み込んだPiの入力欄で許可します。アプリ画面にも、そのブラウザで必要なコマンドを表示します。複数のPiで確認する場合は、それぞれで設定してください。
 
 ```text
 /photosync web-origin http://127.0.0.1:8080
@@ -142,28 +142,28 @@ mise run web
 コマンドで指定したWeb接続の許可は、再読み込みやセッション終了時にクリアされます。起動時に指定する場合は、次のオプションを使います。
 
 ```bash
-pi -e /絶対パス/photo-sync/extensions/photosync.ts \
+pi -e /絶対パス/agent-photo-sync/extensions/photosync.ts \
   --photosync-web-origin http://127.0.0.1:8080
 ```
 
-1. Piで `/photosync status` を実行します。
+1. Piで `/photosync status` を実行します。Claude Codeでは「PhotoSyncの状態を見せて」と頼みます（`photosync_status`）。
 2. ブラウザで `http://127.0.0.1:8080` を開きます。
 3. 「このPCのWeb確認用」に表示されたURLを入力して「接続」を押します。
 4. 送信先を選択し、「画像ファイルを選んで送信」を押します。
 5. `test/fixtures/photo.png` などのPNG/JPEGを選びます。
-6. 選んだPiに画像が添付され、「未送信」の枚数が増えることを確認します。
+6. Piでは画像が添付され、「未送信」の枚数が増えることを確認します。Claude Codeでは「写真を見て」と頼み、画像が読み込まれることを確認します。
 
 PCのカメラは不要です。Webでカメラを使う場合、ブラウザのカメラAPIにはlocalhostまたはHTTPSが必要です。
 
-`ClientException: Failed to fetch` が表示された場合は、接続先URLと `/photosync status` の「Web接続の許可」を確認してください。
-許可するのはPiの受信ポートのURLではなく、ブラウザで開いているWebアプリのURLです。`localhost` と `127.0.0.1` は別の接続元として扱われます。
+`ClientException: Failed to fetch` が表示された場合は、接続先URLと、Piでは `/photosync status` の「Web接続の許可」、Claude Codeでは `PHOTOSYNC_WEB_ORIGIN` の値を確認してください。
+許可するのは受信ポートのURLではなく、ブラウザで開いているWebアプリのURLです。`localhost` と `127.0.0.1` は別の接続元として扱われます。
 
 コード更新後はPiで `/reload`、Flutterの起動ターミナルで `R`（Hot restart）を実行してください。
-Piの再読み込みで受信ポートが変わるため、Web接続の許可を設定し直し、`/photosync status` の新しい接続先URLで再接続します。
+Piの再読み込みでWeb接続の許可がクリアされ、受信ポートも変わる場合があるため、許可を設定し直し、`/photosync status` の接続先URLで再接続します。
 
 ### Androidで動かす
 
-対応範囲はAndroid 7.0（API 24）以降です。APKを作ってスマホへコピーすれば、USBデバッグなしでインストールできます。
+対応範囲はAndroid 7.0（API 24）以降です。APKを作ってスマホへ渡せば、USBデバッグなしでインストールできます。
 
 Android SDKのコマンドラインツールと、ビルド用のJDK 21もmiseで管理します。
 プロジェクトのルートで、次の準備を行います。
@@ -182,8 +182,21 @@ mise run android:setup
 mise run android:build
 ```
 
-出力先は `apps/camera/build/app/outputs/flutter-apk/app-debug.apk` です。
-このファイルをスマホにコピーして開き、必要な場合は、そのファイルを開くアプリの「不明なアプリのインストール」を許可します。
+出力先は `apps/camera/build/app/outputs/flutter-apk/app-debug.apk`（約150MiB）です。
+USBでのコピーやファイル共有アプリでスマホへ渡すほか、スマホにアプリを追加せずに、LANで一時的に配信してQRコードから取得することもできます。
+配信に使うポートは、PCのファイアウォールで許可されている必要があります。次の例は、受信用に許可する47800〜47819番の最後の番号を使います。
+
+```bash
+mkdir -p /tmp/apk-share
+cp apps/camera/build/app/outputs/flutter-apk/app-debug.apk /tmp/apk-share/agent-photosync.apk
+qrencode -t ansiutf8 "http://<PCのLAN IP>:47819/agent-photosync.apk"
+python3 -m http.server 47819 --bind 0.0.0.0 --directory /tmp/apk-share
+```
+
+配信中は同じLANの誰でもAPKを取得できます。インストールが終わったら `Ctrl+C` で止めてください。
+
+スマホで取得したAPKを開き、必要な場合は、そのファイルを開くアプリ（ブラウザなど）の「不明なアプリのインストール」を許可します。
+旧名の **Pi PhotoSync**（`dev.photosync.pi_photosync`）が入っている場合は、別のアプリとして残るため削除してください。
 インストール後に **Agent PhotoSync** を開き、カメラの使用を許可してください。
 
 USBで開発・実行する場合は、スマホの開発者向けオプションでUSBデバッグを有効にし、接続時にPCを許可した後、次を実行します。
@@ -220,12 +233,15 @@ Web用オリジンの指定はブラウザのCORS設定であり、認証の代�
 - 画像受信のTCPポートは、47800〜47819番のうち空いている番号を使います。セッションごとに1つ使うため、同時に20セッションまで受信できます。
   環境変数 `PHOTOSYNC_PORT_RANGE`（例: `48000-48009`）で範囲を変更できます。
 - PCのファイアウォールで、mDNS（UDP 5353）と受信ポートの範囲への通信が必要です。
-  スマホのIPアドレスをルーターのDHCP予約で固定し、そのIPからだけ許可すると範囲を絞れます。ufwの例:
+  Fedora Workstationの既定のゾーンは1025〜65535番を許可しているため、追加の設定は不要です。
+  受信を既定で拒否するufwなどでは、LANからのこれらのポートを許可します。ufwの例（LANが192.168.0.0/24の場合）:
 
   ```bash
-  sudo ufw allow from <スマホのIP> to any port 5353 proto udp comment 'Agent PhotoSync mDNS'
-  sudo ufw allow from <スマホのIP> to any port 47800:47819 proto tcp comment 'Agent PhotoSync'
+  sudo ufw allow from 192.168.0.0/24 to any port 5353 proto udp comment 'Agent PhotoSync mDNS'
+  sudo ufw allow from 192.168.0.0/24 to any port 47800:47819 proto tcp comment 'Agent PhotoSync'
   ```
+
+  許可する送信元をスマホのIPアドレス（ルーターのDHCP予約で固定）にすると、さらに範囲を絞れます。
 - ゲストWi-Fiや端末間通信を遮断するネットワークでは通信できません。
 
 ## 検査・テスト
