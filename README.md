@@ -217,8 +217,15 @@ Web用オリジンの指定はブラウザのCORS設定であり、認証の代�
 画像の送信はHTTP POST、状態の通知はHTTPのSSE接続を使用します。
 
 - IPv4とmDNS（UDP 5353）を使用します。
-- 画像受信のTCPポートは、セッションの起動ごとにOSが空きポートを割り当てます。
-- PCのファイアウォールで、mDNSと `/photosync status` に表示されたTCPポートへの通信が必要です。
+- 画像受信のTCPポートは、47800〜47819番のうち空いている番号を使います。セッションごとに1つ使うため、同時に20セッションまで受信できます。
+  環境変数 `PHOTOSYNC_PORT_RANGE`（例: `48000-48009`）で範囲を変更できます。
+- PCのファイアウォールで、mDNS（UDP 5353）と受信ポートの範囲への通信が必要です。
+  スマホのIPアドレスをルーターのDHCP予約で固定し、そのIPからだけ許可すると範囲を絞れます。ufwの例:
+
+  ```bash
+  sudo ufw allow from <スマホのIP> to any port 5353 proto udp comment 'Agent PhotoSync mDNS'
+  sudo ufw allow from <スマホのIP> to any port 47800:47819 proto tcp comment 'Agent PhotoSync'
+  ```
 - ゲストWi-Fiや端末間通信を遮断するネットワークでは通信できません。
 
 ## 検査・テスト

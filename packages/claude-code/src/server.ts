@@ -4,7 +4,12 @@ import { basename } from "node:path";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { PhotoDiscovery } from "../../core/src/discovery.ts";
-import { lanUrls, readHostIdentity, stateDirectory } from "../../core/src/host.ts";
+import {
+  lanUrls,
+  readHostIdentity,
+  receiverPorts,
+  stateDirectory,
+} from "../../core/src/host.ts";
 import { PhotoInbox } from "../../core/src/inbox.ts";
 import type { SessionIdentity } from "../../core/src/protocol.ts";
 import { PhotoReceiver } from "../../core/src/receiver.ts";
@@ -38,6 +43,7 @@ const discovery = new PhotoDiscovery(report, (change) =>
 const receiver = new PhotoReceiver({
   id: receiverId,
   host: "0.0.0.0",
+  ports: receiverPorts(),
   webOrigin: process.env.PHOTOSYNC_WEB_ORIGIN,
   inbox,
   selection,

@@ -5,7 +5,11 @@ import type {
 } from "@earendil-works/pi-coding-agent";
 import { Text } from "@earendil-works/pi-tui";
 import { PhotoDiscovery } from "../packages/core/src/discovery.ts";
-import { lanUrls, stateDirectory } from "../packages/core/src/host.ts";
+import {
+  lanUrls,
+  receiverPorts,
+  stateDirectory,
+} from "../packages/core/src/host.ts";
 import { PhotoInbox } from "../packages/core/src/inbox.ts";
 import { PhotoReceiver } from "../packages/core/src/receiver.ts";
 import { ReceiverSelection } from "../packages/core/src/selection.ts";
@@ -55,6 +59,7 @@ export default function photosync(pi: ExtensionAPI): void {
     receiver = new PhotoReceiver({
       id: receiverId,
       host: "0.0.0.0",
+      ports: receiverPorts(),
       webOrigin: pi.getFlag("photosync-web-origin") as string | undefined,
       inbox,
       selection,

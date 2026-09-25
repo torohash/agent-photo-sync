@@ -1,8 +1,11 @@
 import assert from "node:assert/strict";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { createServer } from "node:http";
+import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
+import { receiverPorts } from "../packages/core/src/host.ts";
 import { PhotoInbox } from "../packages/core/src/inbox.ts";
 import { PhotoReceiver } from "../packages/core/src/receiver.ts";
 import { ReceiverSelection } from "../packages/core/src/selection.ts";
@@ -84,4 +87,52 @@ void test("同じフォルダのPiへ個別に送信でき、Pi側の受信先�
   );
   assert.equal(inboxes[1].take().length, 1);
   assert.equal(inboxes[1].take().length, 0);
+});
+
+void test("使用中のポートを飛ばして、候補の次のポートで待ち受ける", async (t) => {
+  const listening = async () => {
+    const server = createServer();
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    return server;
+  };
+  const busy = await listening();
+  const free = await listening();
+  const ports = [busy, free].map((server) => (server.address() as AddressInfo).port);
+  await new Promise<void>((resolve) => free.close(() => resolve()));
+  const directory = await mkdtemp(join(tmpdir(), "photosync-port-"));
+  const receiver = new PhotoReceiver({
+    id: "port-test",
+    host: "127.0.0.1",
+    ports,
+    webOrigin: undefined,
+    inbox: new PhotoInbox(),
+    selection: new ReceiverSelection(directory),
+    identity: async () => { throw new Error("未使用"); },
+    peers: () => [],
+    onPhoto: () => {},
+    onError: (error) => { throw error; },
+  });
+  t.after(async () => {
+    await receiver.close();
+    busy.close();
+    await rm(directory, { recursive: true });
+  });
+  await receiver.start();
+  assert.equal(receiver.port, ports[1]);
+  assert.equal((await fetch(`http://127.0.0.1:${ports[1]}/v1/peers`)).status, 200);
+});
+
+void test("PHOTOSYNC_PORT_RANGEで受信ポートの範囲を変更できる", () => {
+  const previous = process.env.PHOTOSYNC_PORT_RANGE;
+  try {
+    delete process.env.PHOTOSYNC_PORT_RANGE;
+    assert.deepEqual([receiverPorts()[0], receiverPorts().at(-1)], [47800, 47819]);
+    process.env.PHOTOSYNC_PORT_RANGE = "50000-50002";
+    assert.deepEqual(receiverPorts(), [50000, 50001, 50002]);
+    process.env.PHOTOSYNC_PORT_RANGE = "50002-50000";
+    assert.throws(() => receiverPorts(), /PHOTOSYNC_PORT_RANGE/);
+  } finally {
+    if (previous === undefined) delete process.env.PHOTOSYNC_PORT_RANGE;
+    else process.env.PHOTOSYNC_PORT_RANGE = previous;
+  }
 });

@@ -64,3 +64,16 @@ export function lanUrls(port: number): string[] {
     .filter((address) => address?.family === "IPv4" && !address.internal)
     .map((address) => `http://${address!.address}:${port}`);
 }
+
+/**
+ * 受信ポートの候補。ファイアウォールで許可する範囲を固定するため、
+ * 既定は47800〜47819番。PHOTOSYNC_PORT_RANGE="開始-終了" で変更できる。
+ */
+export function receiverPorts(): number[] {
+  const range = process.env.PHOTOSYNC_PORT_RANGE ?? "47800-47819";
+  const match = /^(\d+)-(\d+)$/.exec(range);
+  const [start, end] = match ? [Number(match[1]), Number(match[2])] : [NaN, NaN];
+  if (!(start >= 1 && start <= end && end <= 65535))
+    throw new Error(`PHOTOSYNC_PORT_RANGE は "開始-終了" の形式で指定してください: ${range}`);
+  return Array.from({ length: end - start + 1 }, (_, index) => start + index);
+}

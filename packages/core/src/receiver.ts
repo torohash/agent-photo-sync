@@ -18,6 +18,8 @@ import type { ReceiverSelection } from "./selection.ts";
 export interface ReceiverOptions {
   id: string;
   host: string;
+  /** 待ち受けに使うポートの候補。省略時はOSが空きポートを割り当てる。 */
+  ports?: readonly number[];
   webOrigin: string | undefined;
   inbox: PhotoInbox;
   selection: ReceiverSelection;
@@ -49,16 +51,29 @@ export class PhotoReceiver {
 
   async start(): Promise<void> {
     await this.options.selection.initialize();
-    await new Promise<void>((resolve, reject) => {
+    const ports = this.options.ports ?? [0];
+    for (const [index, port] of ports.entries()) {
+      try {
+        await this.listen(port);
+        break;
+      } catch (error) {
+        const inUse = (error as NodeJS.ErrnoException).code === "EADDRINUSE";
+        if (!inUse || index === ports.length - 1) throw error;
+      }
+    }
+    this.port = (this.server.address() as AddressInfo).port;
+    this.selectionWatcher = this.options.selection.watch(() => this.notifyStatus());
+    this.selectionWatcher.on("error", this.options.onError);
+  }
+
+  private listen(port: number): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
       this.server.once("error", reject);
-      this.server.listen(0, this.options.host, () => {
+      this.server.listen(port, this.options.host, () => {
         this.server.off("error", reject);
         resolve();
       });
     });
-    this.port = (this.server.address() as AddressInfo).port;
-    this.selectionWatcher = this.options.selection.watch(() => this.notifyStatus());
-    this.selectionWatcher.on("error", this.options.onError);
   }
 
   async status(): Promise<ReceiverStatus> {
