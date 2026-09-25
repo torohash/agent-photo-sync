@@ -1,14 +1,14 @@
-# Pi PhotoSyncの通信
+# Agent PhotoSyncの通信
 
 ## 探索
 
-Pi拡張は `_pi-photosync._tcp` をmDNSで公開します。
-サービス名は `Pi PhotoSync <受信先ID>`、TXTレコードの `id` は受信先のUUIDです。
+Pi拡張とClaude Code用MCPサーバー（以下、受信先）は `_agent-photosync._tcp` をmDNSで公開します。
+サービス名は `Agent PhotoSync <受信先ID>`、TXTレコードの `id` は受信先のUUIDです。
 SRVレコードのポートへHTTPで接続します。
 
 Androidは `nsd` プラグインでIPv4の接続先を取得します。
-Webでは入力されたPiの `/v1/events` を開き、初回の通知から他のPiの接続先も取得します。
-Pi拡張同士の探索にも同じmDNSを使います。
+Webでは入力された受信先の `/v1/events` を開き、初回の通知から他の受信先の接続先も取得します。
+受信先同士の探索にも同じmDNSを使います。
 
 ## エンドポイント
 
@@ -24,22 +24,23 @@ Pi拡張同士の探索にも同じmDNSを使います。
 | `peer-up` | `{ "id": "受信先UUID", "url": "http://..." }`。mDNSで受信先を発見 |
 | `peer-down` | `{ "id": "受信先UUID" }`。mDNSで受信先の終了を検出 |
 
-各Piに対してSSE接続を開きます。同じ受信先IDを異なるアドレスから発見しても、接続を重複させません。
-同じ状態の通知はPi側で抑制します。アプリは定期取得や自動再接続を行わず、再接続は明示的な操作で行います。
+各受信先に対してSSE接続を開きます。同じ受信先IDを異なるアドレスから発見しても、接続を重複させません。
+同じ状態の通知は受信先側で抑制します。アプリは定期取得や自動再接続を行わず、再接続は明示的な操作で行います。
 
 ### GET /v1/status
 
 ```json
 {
+  "agent": "pi",
   "id": "受信先UUID",
   "shortId": "UUIDの先頭8文字",
-  "hostId": "PCとPi設定ディレクトリを識別する値",
+  "hostId": "PCと共有ディレクトリを識別する値",
   "host": "fedora",
   "cwd": "/home/user/dev/photo-sync",
   "project": "photo-sync",
   "pid": 1234,
   "terminal": "/dev/pts/1",
-  "sessionId": "PiのセッションUUID",
+  "sessionId": "エージェントのセッションID",
   "sessionName": null,
   "model": null,
   "herdr": {
@@ -55,15 +56,19 @@ Pi拡張同士の探索にも同じmDNSを使います。
 }
 ```
 
+`agent` は `pi` または `claude-code` です。アプリは受信後の案内文をこの値で切り替えます。
 `herdr` はHerdr外では `null` です。
-`hostId` はLinuxのmachine-idとPi設定ディレクトリからSHA-256で算出します。machine-id自体は公開しません。
+`hostId` はLinuxのmachine-idと、受信先指定の共有ディレクトリ（`$XDG_STATE_HOME/agent-photosync`、未設定時は `~/.local/state/agent-photosync`）からSHA-256で算出します。同じPCのPiとClaude Codeは同じ値になります。machine-id自体は公開しません。
 アプリのPC選択には `hostId` を使い、表示にはホスト名とアドレスを使います。
 
-`id` はPi拡張のセッション開始時に新しく発行します。Piの会話の `sessionId` と区別します。
+`id` は受信先の起動時に新しく発行します。会話の `sessionId` と区別します。
+
+Claude Codeの場合、`pid` と `terminal` はMCPサーバーではなくClaude Code本体（環境変数 `CLAUDE_PID`）のものです。
+`sessionId` は環境変数 `CLAUDE_CODE_SESSION_ID` から取得し、`sessionName` と `model` は `null` です。
 
 ### GET /v1/peers
 
-自分と、mDNSで発見したPi拡張の接続先を返します。
+自分と、mDNSで発見した受信先の接続先を返します。
 
 ```json
 [
@@ -85,22 +90,22 @@ Pi拡張同士の探索にも同じmDNSを使います。
 ```
 
 そのプロセスの受信先IDに一致しないURLはHTTP 404になります。
-画像は受信したPiのメモリに入り、次の対話入力の `images` に追加されます。
+画像は受信先のメモリに入ります。Piでは次の対話入力の `images` に追加され、Claude CodeではMCPツール `get_photos` の結果として返します。
 
 ### OPTIONS
 
 Webからの送信に必要なCORSプリフライトにHTTP 204で応答します。
-許可するWebオリジンは `--photosync-web-origin`、または起動中の `/photosync web-origin <URL>` で指定します。
+許可するWebオリジンは、Piでは `--photosync-web-origin` または起動中の `/photosync web-origin <URL>`、Claude CodeではMCPサーバーの環境変数 `PHOTOSYNC_WEB_ORIGIN` で指定します。
 
-## Pi側から受信先を指定する
+## PC側で受信先を指定する
 
-`/photosync receive` は共有ファイルの受信先IDを更新します。
-各Piがファイルの変更を監視し、SSEの `status` イベントを送ります。
+Piの `/photosync receive` とClaude CodeのMCPツール `photosync_receive` は、共有ファイルの受信先IDを更新します。
+各受信先がファイルの変更を監視し、SSEの `status` イベントを送ります。
 `selection.receiverId` は指定されたID、`selection.revision` は同じファイルから読み取った更新時刻（ナノ秒の文字列）です。
 `preferred` は自身のIDと指定先IDが一致するかを表します。
 
-アプリが「Pi側で指定」を使う場合は、選んだ `hostId` の最新の `selection.receiverId` を使います。
-別々のPiからの通知が前後する場合は、`revision` で新旧を比較します。
+アプリが「PC側で指定」を使う場合は、選んだ `hostId` の最新の `selection.receiverId` を使います。
+別々の受信先からの通知が前後する場合は、`revision` で新旧を比較します。
 「一覧から選ぶ」を使う場合は、ユーザーが選んだ受信先IDに送ります。
 
 通信、JSON解析、画像の取得などの失敗は表示し、自動的な再送や他の受信先への切り替えは行いません。

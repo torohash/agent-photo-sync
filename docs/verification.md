@@ -142,3 +142,23 @@ Android SDKを導入し、APKのビルドと署名を確認しました。Androi
 
 初期実装は信頼できるLAN用です。接続相手の認証、暗号化、アップロードサイズ制限は今後の検討項目です。
 Androidの撮影はファイル保存を避けるため画像ストリームを使っています。通常の静止画撮影の画質や端末固有の補正機能との違いは、実機で評価する必要があります。
+
+## Claude Code対応とAgent PhotoSyncへの改名後の確認
+
+2026-09-25に、このPCで実施した確認です。Node.js 26.8.2、Flutter 3.47.2（いずれもmise管理）。
+
+- `npm run check`: 型検査を通過。
+- `npm test`: 3件通過。既存の2件に加え、Claude Code用MCPサーバーをNode.jsでTypeScriptのまま起動し、MCPクライアントから以下を確認。
+  - `/v1/status` の `agent` が `claude-code`、`sessionId` が `CLAUDE_CODE_SESSION_ID` の値になる。
+  - POSTした画像を `get_photos` が元のバイト列・MIME型のまま返し、2回目は空になる。
+  - `photosync_receive` で共有の受信先指定ファイルが更新される。
+- `npm run test:discovery`: 新しいサービス種別 `_agent-photosync._tcp` で別プロセスを発見し、LANアドレスから接続。
+- README記載の `mise exec -C <リポジトリ> -- node packages/claude-code/src/server.ts` をstdioで起動し、3つのツールが一覧に出ることを確認。
+- `mise run camera:check`: 静的検査は指摘なし、5件のテストを通過（一覧にPiとClaude Codeの種類が表示されることを追加）。
+- `mise run web:build`: 通過。
+
+未確認の項目:
+
+- 実際のClaude Codeに登録した状態での、写真の受信と `get_photos` による画像の読み込み。
+- `npm run test:e2e`（文言を更新済み。Chrome・tmux・Herdrを使うため未実行）。
+- 改名後のAPKのビルドとAndroid実機。applicationIdが変わるため、旧 **Pi PhotoSync** とは別のアプリとしてインストールされます。

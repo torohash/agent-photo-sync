@@ -1,28 +1,30 @@
-# Pi PhotoSync
+# Agent PhotoSync
 
-Androidで撮影した写真を、同じLAN上のPi Coding Agentに添付します。
-カメラアプリとPi拡張の表示名は、どちらも **Pi PhotoSync** です。
+Androidで撮影した写真を、同じLAN上のPi Coding AgentやClaude Codeに渡します。
+カメラアプリは1つで、PiとClaude Codeのセッションが同じ一覧に並びます。
 
 ## 構成
 
 ```text
 extensions/photosync.ts          Pi拡張の入り口
-packages/pi-extension/src/       HTTP受信・mDNS探索・受信先情報・未送信画像
+packages/core/src/               HTTP受信・mDNS探索・受信先指定・未送信画像（共通）
+packages/pi/src/                 Pi固有の受信先情報
+packages/claude-code/src/        Claude Code用MCPサーバー
 apps/camera/                    Flutterアプリ（Android / Web）
 test/                           受信・探索・ブラウザと対話中のPiの確認
 ```
 
-PC側の受信処理はPiの中で動きます。Piを起動すると待ち受けを開始し、終了すると停止します。
-現在のPC側実装はLinux用です。Herdr内外のPiに対応しています。
+PC側の受信処理は、PiではPi拡張、Claude CodeではMCPサーバーとして動きます。どちらもセッションの開始で待ち受けを開始し、終了すると停止します。
+現在のPC側実装はLinux用です。Herdr内外に対応しています。
 
 ### 画像の流れ
 
 1. アプリで送信先を選びます。
 2. 撮影すると、その画像をPiへ送信します。
-3. Piに画像が添付され、入力欄の上に「未送信」の添付枚数と送信操作の案内が表示されます。
-4. Piで文章を入力してEnterを押すと、本文と画像を一緒に送信します。
+3. Piでは画像が添付され、入力欄の上に「未送信」の添付枚数と送信操作の案内が表示されます。文章を入力してEnterを押すと、本文と画像を一緒に送信します。
+4. Claude Codeでは「写真を見て」などと頼むと、ClaudeがMCPツール `get_photos` で未取得の画像をまとめて受け取ります。
 
-受信しただけではモデルを呼び出しません。複数枚の画像も本文と一緒にまとめて送信します。
+どちらも受信しただけではモデルを呼び出しません。
 
 ## Pi拡張の起動
 
@@ -40,37 +42,58 @@ pi -e ./extensions/photosync.ts
 pi install /絶対パス/photo-sync
 ```
 
-### コマンド
+### Piのコマンド
 
 | コマンド | 内容 |
 | --- | --- |
 | `/photosync status` | 作業ディレクトリ、PID、端末、セッションID、Herdr上の位置、接続先URL、未送信画像の枚数を表示 |
-| `/photosync receive` | このPiを、このPCでコマンドにより指定する受信先にする |
+| `/photosync receive` | このPiを、このPCで「PC側で指定」の受信先にする |
 | `/photosync clear` | 未送信の画像の添付を解除する |
 | `/photosync web-origin <URL>` | 起動中のPiで、Webアプリの接続元URLを許可する |
 
-`Pi PhotoSync [xxxxxxxx]` の括弧内は、自動で発行する受信先IDの先頭8文字です。同じ作業ディレクトリで複数のPiを開いている場合などに、アプリの一覧とPiの画面を照合できます。
+`Agent PhotoSync [xxxxxxxx]` の括弧内は、自動で発行する受信先IDの先頭8文字です。同じ作業ディレクトリで複数のPiを開いている場合などに、アプリの一覧とPiの画面を照合できます。
 受信先IDはPiの起動、`/reload`、会話の切り替えで変わります。`/photosync status` にはID全体も表示します。
+
+## Claude Codeで使う
+
+Claude CodeにMCPサーバーとして登録します。Node.jsは `mise.toml` で固定した版を `mise exec` で使います（TypeScriptを直接実行するため22.18以降が必要）。
+
+```bash
+mise install node
+mise exec -- npm ci
+claude mcp add --scope user photosync -- \
+  mise exec -C /絶対パス/agent-photo-sync -- node packages/claude-code/src/server.ts
+```
+
+次に起動するClaude Codeから、セッションごとにMCPサーバーが起動します。写真を送ったら、Claude Codeに「写真を見て」などと頼んでください。
+
+| MCPツール | 内容 |
+| --- | --- |
+| `get_photos` | 未取得の写真をすべて返し、受信箱を空にする |
+| `photosync_status` | 受信先ID、未取得の写真の枚数、接続先URLを返す |
+| `photosync_receive` | このセッションを「PC側で指定」の受信先にする。「写真の受信先にして」と頼むと呼ばれる |
+
+Web版から送る場合は、登録時に `-e PHOTOSYNC_WEB_ORIGIN=http://127.0.0.1:8080` を付けてWebアプリの接続元URLを許可します。
 
 ## 送信先の選び方
 
 ### アプリの一覧から選ぶ
 
-AndroidアプリがmDNSでPi拡張を探します。PC名とアドレスの下に、作業ディレクトリ、受信先ID、Herdrのワークスペース番号または端末を表示します。
+AndroidアプリがmDNSでPi拡張とClaude CodeのMCPサーバーを探します。PC名とアドレスの下に、エージェントの種類、作業ディレクトリ、受信先ID、Herdrのワークスペース番号または端末を表示します。
 詳細画面でフルパス、セッションID、モデル、PIDも確認できます。
 
-各Piが固有の受信先IDとポートを持ちます。同じディレクトリや同じ会話を複数のPiで開いていても、送信先を区別します。
+各セッションが固有の受信先IDとポートを持ちます。同じディレクトリや同じ会話を複数開いていても、送信先を区別します。
 PCにも識別IDを持たせており、ホスト名が同じPCを区別できます。
 
-### Pi側で指定する
+### PC側で指定する
 
-アプリで「Pi側で指定」を選び、PCを選択します。
-そのPCのPiで `/photosync receive` を実行すると、そのPiが送信先になります。
-別のPiで同じコマンドを実行すれば、以降はそちらが送信先になります。
-受信先の情報と未送信画像の枚数はSSEで通知します。Pi側の指定、画像の受信・解除、Piの追加・終了を変更時に反映し、定期ポーリングは行いません。
+アプリで「PC側で指定」を選び、PCを選択します。
+そのPCのPiで `/photosync receive` を実行するか、Claude Codeに「写真の受信先にして」と頼むと、そのセッションが送信先になります。
+別のセッションで同じ操作をすれば、以降はそちらが送信先になります。PiとClaude Codeの間でも切り替わります。
+受信先の情報と未送信画像の枚数はSSEで通知します。PC側の指定、画像の受信・解除、セッションの追加・終了を変更時に反映し、定期ポーリングは行いません。
 接続失敗や切断時はエラーを表示し、「接続」または「送信先を更新」を押したときに再接続します。
 
-この指定は同じPC・Pi設定ディレクトリ内で共有します。指定されたPiが終了しても、他のPiを自動で選びません。
+この指定は同じPC・ユーザーの `$XDG_STATE_HOME/agent-photosync`（未設定時は `~/.local/state/agent-photosync`）で共有します。指定されたセッションが終了しても、他のセッションを自動で選びません。
 
 ### Herdr内外の違い
 
@@ -161,7 +184,7 @@ mise run android:build
 
 出力先は `apps/camera/build/app/outputs/flutter-apk/app-debug.apk` です。
 このファイルをスマホにコピーして開き、必要な場合は、そのファイルを開くアプリの「不明なアプリのインストール」を許可します。
-インストール後に **Pi PhotoSync** を開き、カメラの使用を許可してください。
+インストール後に **Agent PhotoSync** を開き、カメラの使用を許可してください。
 
 USBで開発・実行する場合は、スマホの開発者向けオプションでUSBデバッグを有効にし、接続時にPCを許可した後、次を実行します。
 
@@ -171,8 +194,8 @@ mise exec -- flutter devices
 mise exec -- flutter run -d <AndroidのデバイスID>
 ```
 
-Androidアプリを開くとLANのPiを探索します。Web版のCORS設定は不要です。
-スマホとPCを同じWi-Fiへ接続し、Pi側のファイアウォールで通信を許可してください。
+Androidアプリを開くとLANのPiとClaude Codeを探索します。Web版のCORS設定は不要です。
+スマホとPCを同じWi-Fiへ接続し、PC側のファイアウォールで通信を許可してください。
 送信先と使用するカメラを選び、「撮影して送信」を押します。
 
 Androidでは `takePicture()` の一時ファイル保存を使わず、画像ストリームの1フレームをDartでJPEGに変換します。
@@ -182,9 +205,9 @@ Webのカメラ撮影ではブラウザ内のBlobを読み取ります。
 ### データの保持
 
 - Androidで撮影した画像はメモリ上で扱い、写真フォルダやキャッシュファイルへ保存しません。
-- Piの未送信画像もメモリ上にあります。Piの終了、`/reload`、会話の切り替えで失われます。
-- メッセージ送信後は、画像がPiの会話履歴に含まれます。クラウドモデルを使う場合はモデル提供元へ送られます。
-- PCに共有する受信先指定ファイルにはIDだけを保存します。場所はPi設定ディレクトリの `photosync/selected-receiver` です。
+- PC側の未送信画像もメモリ上にあります。Piの終了、`/reload`、会話の切り替え、Claude Codeの終了で失われます。
+- Piではメッセージ送信後、Claude Codeでは `get_photos` の実行後に、画像が会話履歴に含まれます。クラウドモデルを使う場合はモデル提供元へ送られます。
+- PCに共有する受信先指定ファイルにはIDだけを保存します。場所は `~/.local/state/agent-photosync/selected-receiver` です。
 
 ## ネットワークと利用範囲
 
@@ -194,7 +217,7 @@ Web用オリジンの指定はブラウザのCORS設定であり、認証の代�
 画像の送信はHTTP POST、状態の通知はHTTPのSSE接続を使用します。
 
 - IPv4とmDNS（UDP 5353）を使用します。
-- 画像受信のTCPポートは、Piの起動ごとにOSが空きポートを割り当てます。
+- 画像受信のTCPポートは、セッションの起動ごとにOSが空きポートを割り当てます。
 - PCのファイアウォールで、mDNSと `/photosync status` に表示されたTCPポートへの通信が必要です。
 - ゲストWi-Fiや端末間通信を遮断するネットワークでは通信できません。
 
