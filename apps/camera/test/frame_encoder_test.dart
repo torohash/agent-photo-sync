@@ -2,7 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as image;
-import 'package:pi_photosync/frame_encoder.dart';
+import 'package:agent_photosync/frame_encoder.dart';
 
 void main() {
   test('行の余白とUVの画素間隔を考慮し、センサーの向きでJPEGを回転する', () {

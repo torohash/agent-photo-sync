@@ -6,7 +6,7 @@ import 'photosync_client.dart';
 import 'receiver.dart';
 import 'receiver_event.dart';
 
-enum TargetMode { manual, piSelected }
+enum TargetMode { manual, pcSelected }
 
 class _ReceiverConnection {
   _ReceiverConnection(this.origin, this.id);
@@ -107,7 +107,7 @@ class ReceiverController extends ChangeNotifier {
         .listen(
           (event) => _receive(connection, event),
           onError: (Object error) => _ended(connection, error.toString()),
-          onDone: () => _ended(connection, 'Piとの接続が終了しました: $origin'),
+          onDone: () => _ended(connection, '受信先との接続が終了しました: $origin'),
           cancelOnError: true,
         );
   }

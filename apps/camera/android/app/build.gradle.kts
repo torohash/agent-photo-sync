@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "dev.photosync.pi_photosync"
+    namespace = "dev.photosync.agent_photosync"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -14,7 +14,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "dev.photosync.pi_photosync"
+        applicationId = "dev.photosync.agent_photosync"
         // cameraプラグインの最低対応バージョン。
         minSdk = 24
         targetSdk = flutter.targetSdkVersion

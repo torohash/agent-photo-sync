@@ -50,7 +50,7 @@ class _PhotoSyncPageState extends State<PhotoSyncPage> {
 
   Future<void> _startDiscovery() async {
     _discovery = await nsd.startDiscovery(
-      '_pi-photosync._tcp',
+      '_agent-photosync._tcp',
       ipLookupType: nsd.IpLookupType.v4,
     );
     if (!mounted) {
@@ -84,7 +84,8 @@ class _PhotoSyncPageState extends State<PhotoSyncPage> {
       if (receiver == null) {
         setState(
           () =>
-              _error = '送信先を選択してください。Pi側で指定する場合は /photosync receive を実行してください。',
+              _error =
+                  '送信先を選択してください。PC側で指定する場合は、Piで /photosync receive を実行するか、Claude Codeに「写真の受信先にして」と頼んでください。',
         );
         return;
       }
@@ -92,7 +93,7 @@ class _PhotoSyncPageState extends State<PhotoSyncPage> {
       if (!mounted) return;
       setState(
         () => _message =
-            '${receiver.project} [${receiver.shortId}] に画像を添付しました。PiでEnterを押すと本文と一緒にAIへ送信されます。',
+            '${receiver.agentLabel}: ${receiver.project} [${receiver.shortId}] に画像を送りました。${receiver.deliveryHint}',
       );
     } finally {
       if (mounted) setState(() => _sending = false);
@@ -131,7 +132,7 @@ class _PhotoSyncPageState extends State<PhotoSyncPage> {
     final error = _error ?? _receivers.connectionError;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Pi PhotoSync'),
+        title: const Text('Agent PhotoSync'),
         actions: [
           IconButton(
             tooltip: '送信先を更新',
@@ -149,15 +150,17 @@ class _PhotoSyncPageState extends State<PhotoSyncPage> {
             padding: const EdgeInsets.all(24),
             children: [
               Text(
-                '撮影して、作業中のPiへ。',
+                '撮影して、作業中のエージェントへ。',
                 style: Theme.of(context).textTheme.headlineSmall,
               ),
               const SizedBox(height: 8),
-              const Text('受信した画像はPiに添付されます。PiでEnterを押すと、本文と一緒にAIへ送信されます。'),
+              const Text(
+                'Piでは入力欄に添付され、Enterで本文と一緒にAIへ送信されます。Claude Codeでは「写真を見て」と頼むと画像を読み込みます。',
+              ),
               const SizedBox(height: 24),
               if (kIsWeb) ...[
                 const Text(
-                  'PiでWeb接続を許可してから、/photosync status の接続先URLを入力してください。',
+                  'Piでは次のコマンド、Claude CodeではMCPサーバーの環境変数 PHOTOSYNC_WEB_ORIGIN でWeb接続を許可してから、接続先URLを入力してください。',
                 ),
                 SelectableText('/photosync web-origin ${Uri.base.origin}'),
                 const SizedBox(height: 12),
@@ -168,7 +171,7 @@ class _PhotoSyncPageState extends State<PhotoSyncPage> {
                       child: TextField(
                         controller: _address,
                         decoration: const InputDecoration(
-                          labelText: 'Piの接続先URL',
+                          labelText: '受信先の接続先URL',
                           hintText: 'http://192.168.1.10:12345',
                         ),
                       ),
@@ -196,8 +199,8 @@ class _PhotoSyncPageState extends State<PhotoSyncPage> {
                     icon: Icon(Icons.touch_app),
                   ),
                   ButtonSegment(
-                    value: TargetMode.piSelected,
-                    label: Text('Pi側で指定'),
+                    value: TargetMode.pcSelected,
+                    label: Text('PC側で指定'),
                     icon: Icon(Icons.terminal),
                   ),
                 ],
@@ -206,7 +209,7 @@ class _PhotoSyncPageState extends State<PhotoSyncPage> {
                     ? null
                     : (selection) => _receivers.selectMode(selection.single),
               ),
-              if (_receivers.mode == TargetMode.piSelected) ...[
+              if (_receivers.mode == TargetMode.pcSelected) ...[
                 const SizedBox(height: 16),
                 DropdownButton<String>(
                   isExpanded: true,
@@ -224,7 +227,7 @@ class _PhotoSyncPageState extends State<PhotoSyncPage> {
                       ? null
                       : (host) => _receivers.selectHost(host!),
                 ),
-                const Text('そのPCで /photosync receive を実行したPiへ送ります。'),
+                const Text('そのPCで受信先に指定したPiまたはClaude Codeへ送ります。'),
               ],
               if (_receivers.refreshing) const LinearProgressIndicator(),
               if (_receivers.receivers.isEmpty)
@@ -232,8 +235,8 @@ class _PhotoSyncPageState extends State<PhotoSyncPage> {
                   padding: EdgeInsets.symmetric(vertical: 24),
                   child: Text(
                     kIsWeb
-                        ? '接続中の受信先はありません。PiのWeb接続許可と接続先URLを確認してください。'
-                        : '受信先はありません。同じWi-Fi上のPiで拡張機能を読み込んでください。',
+                        ? '接続中の受信先はありません。Web接続の許可と接続先URLを確認してください。'
+                        : '受信先はありません。同じWi-Fi上のPCで、PiかClaude CodeにAgent PhotoSyncを読み込んでください。',
                   ),
                 ),
               ReceiverList(

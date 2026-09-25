@@ -1,5 +1,5 @@
-name: pi_photosync
-description: Androidで撮影した写真をPiに添付するPi PhotoSync
+name: agent_photosync
+description: Androidで撮影した写真をPiやClaude Codeに渡すAgent PhotoSync
 publish_to: none
 version: 0.1.0+1
 

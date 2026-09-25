@@ -1,11 +1,11 @@
 {
-    "name": "Pi PhotoSync",
-    "short_name": "Pi PhotoSync",
+    "name": "Agent PhotoSync",
+    "short_name": "Agent PhotoSync",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#101918",
     "theme_color": "#238579",
-    "description": "Androidで撮影した写真をPiに添付するPi PhotoSync",
+    "description": "Androidで撮影した写真をPiやClaude Codeに渡すAgent PhotoSync",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

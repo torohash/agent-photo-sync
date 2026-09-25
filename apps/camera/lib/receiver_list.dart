@@ -50,12 +50,13 @@ class ReceiverList extends StatelessWidget {
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      Text(receiver.agentLabel),
                       Text(receiver.cwd),
                       Text(receiver.location),
                       if (receiver.sessionName != null)
                         Text(receiver.sessionName!),
                       Text(
-                        '未送信 ${receiver.pending}枚${preferredIds.contains(receiver.id) ? ' · Pi側で指定中' : ''}',
+                        '未送信 ${receiver.pending}枚${preferredIds.contains(receiver.id) ? ' · PC側で指定中' : ''}',
                       ),
                     ],
                   ),
@@ -66,7 +67,7 @@ class ReceiverList extends StatelessWidget {
                     onPressed: () => showDialog<void>(
                       context: context,
                       builder: (context) => AlertDialog(
-                        title: Text('Pi PhotoSync [${receiver.shortId}]'),
+                        title: Text('${receiver.agentLabel} [${receiver.shortId}]'),
                         content: SelectableText(
                           [
                             'PC: ${receiver.host}',

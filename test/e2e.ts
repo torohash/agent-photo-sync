@@ -227,7 +227,7 @@ try {
     if (message.type() === "error") console.error(message.text());
   });
   await page.goto(webOrigin);
-  await page.getByRole("textbox", { name: "Piの接続先URL" }).fill(herdrUrl);
+  await page.getByRole("textbox", { name: "受信先の接続先URL" }).fill(herdrUrl);
   const deniedRequest = page.waitForEvent("requestfailed", (request) => request.url() === `${herdrUrl}/v1/events`);
   await page.getByRole("button", { name: "接続", exact: true }).click();
   await deniedRequest;

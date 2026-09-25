@@ -1,4 +1,4 @@
-package dev.photosync.pi_photosync;
+package dev.photosync.agent_photosync;
 
 import io.flutter.embedding.android.FlutterActivity;
 

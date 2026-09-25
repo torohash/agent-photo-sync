@@ -14,7 +14,7 @@ class PhotoSyncApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => MaterialApp(
-    title: 'Pi PhotoSync',
+    title: 'Agent PhotoSync',
     debugShowCheckedModeBanner: false,
     theme: ThemeData(
       colorScheme: ColorScheme.fromSeed(

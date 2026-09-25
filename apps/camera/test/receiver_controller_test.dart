@@ -4,9 +4,9 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
-import 'package:pi_photosync/photosync_client.dart';
-import 'package:pi_photosync/receiver_controller.dart';
-import 'package:pi_photosync/receiver_event.dart';
+import 'package:agent_photosync/photosync_client.dart';
+import 'package:agent_photosync/receiver_controller.dart';
+import 'package:agent_photosync/receiver_event.dart';
 
 class StreamingClient extends http.BaseClient {
   final streams = <int, StreamController<List<int>>>{};
@@ -60,6 +60,7 @@ Map<String, dynamic> status(
 }) => {
   'id': id,
   'shortId': id,
+  'agent': 'pi',
   'hostId': id == 'c' ? 'pc-b' : 'pc-a',
   'host': 'fedora',
   'cwd': '/work/same',
@@ -126,7 +127,7 @@ void main() {
     expect(transport.requests.last.url.path, '/v1/photos/a');
     expect(transport.bodies.single, photo);
 
-    controller.selectMode(TargetMode.piSelected);
+    controller.selectMode(TargetMode.pcSelected);
     controller.selectHost('pc-a');
     expect(controller.target!.id, 'b');
     transport.emit(1002, 'status', status('b', 'a', 2));

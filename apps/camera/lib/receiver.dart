@@ -29,6 +29,7 @@ class SelectionSnapshot {
 
 class Receiver {
   const Receiver({
+    required this.agent,
     required this.id,
     required this.shortId,
     required this.origin,
@@ -47,6 +48,7 @@ class Receiver {
   });
 
   factory Receiver.fromJson(Map<String, dynamic> json, Uri origin) => Receiver(
+    agent: json['agent'] as String,
     id: json['id'] as String,
     shortId: json['shortId'] as String,
     origin: origin,
@@ -68,6 +70,8 @@ class Receiver {
     pending: json['pending'] as int,
   );
 
+  /// `pi` または `claude-code`。
+  final String agent;
   final String id;
   final String shortId;
   final Uri origin;
@@ -83,6 +87,15 @@ class Receiver {
   final HerdrLocation? herdr;
   final SelectionSnapshot selection;
   final int pending;
+
+  bool get isClaudeCode => agent == 'claude-code';
+
+  String get agentLabel => isClaudeCode ? 'Claude Code' : 'Pi';
+
+  /// 画像を受信した後、AIへ渡すための操作。
+  String get deliveryHint => isClaudeCode
+      ? 'Claude Codeで「写真を見て」と頼むと画像を読み込みます。'
+      : 'PiでEnterを押すと本文と一緒にAIへ送信されます。';
 
   String get location => herdr == null
       ? '端末: $terminal'

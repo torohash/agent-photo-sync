@@ -6,7 +6,7 @@
     <uses-permission android:name="android.permission.RECORD_AUDIO" tools:node="remove" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" tools:node="remove" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" tools:node="remove" />
-    <application android:label="Pi PhotoSync" android:name="${applicationName}"
+    <application android:label="Agent PhotoSync" android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher" android:usesCleartextTraffic="true">
         <activity android:name=".MainActivity" android:exported="true"
             android:launchMode="singleTop" android:taskAffinity=""

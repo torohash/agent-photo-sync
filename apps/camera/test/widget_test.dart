@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pi_photosync/receiver.dart';
-import 'package:pi_photosync/receiver_list.dart';
+import 'package:agent_photosync/receiver.dart';
+import 'package:agent_photosync/receiver_list.dart';
 
 void main() {
   testWidgets('同じ作業フォルダでもHerdrの位置と受信先IDで選び分けられる', (tester) async {
     final receivers = [3, 5]
         .map(
           (number) => Receiver(
+            agent: number == 3 ? 'pi' : 'claude-code',
             id: 'receiver-$number',
             shortId: 'R$number',
             origin: Uri.parse('http://pc:800$number'),
@@ -45,6 +46,8 @@ void main() {
     );
     expect(find.text('Herdr: ワークスペース3 / w3:p1'), findsOneWidget);
     expect(find.text('Herdr: ワークスペース5 / w5:p1'), findsOneWidget);
+    expect(find.text('Pi'), findsOneWidget);
+    expect(find.text('Claude Code'), findsOneWidget);
     await tester.tap(find.text('voice-to-list [R5]'));
     expect(selected, 'receiver-5');
   });
